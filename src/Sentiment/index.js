@@ -1,61 +1,117 @@
-// Copyright (c) 2018 ml5
-//
-// This software is released under the MIT License.
-// https://opensource.org/licenses/MIT
+import * as tf from '@tensorflow/tfjs';
+import { OOV_CHAR, padSequences } from './sequence_utils';
 
-/*
-Sentiment
+
+/**
+* Initializes the Sentiment demo.
 */
 
 
-import * as tf from '@tensorflow/tfjs';
+class SentimentPredictor {
+  /**
+  * Initializes the Sentiment demo.
+  */
+  async init(urls) {
+    this.urls = urls;
 
-// load loader.js from local directory
-import * as loader from './loader';
+    this.model = await loadHostedPretrainedModel(urls.model);
+    console.log('🤖 model', this.model);
+    await this.loadMetadata();
+    return this;
+  }
 
+  async loadMetadata() {
+    const sentimentMetadata =
+      await loadHostedMetadata(this.urls.metadata);
+    // ui.showMetadata(sentimentMetadata);
+    this.indexFrom = sentimentMetadata['index_from'];
+    this.maxLen = sentimentMetadata['max_len'];
+    console.log('🤖', 'indexFrom = ' + this.indexFrom);
+    console.log('🤖', 'maxLen = ' + this.maxLen);
 
+    this.wordIndex = sentimentMetadata['word_index'];
+    this.vocabularySize = sentimentMetadata['vocabulary_size'];
+    console.log('🤖', 'vocabularySize = ', this.vocabularySize);
+  }
 
-//load model and metadata from tensorflow (or locally?)
+  predict(text) {
+    // Convert to lower case and remove all punctuations.
+    const inputText =
+      text.trim().toLowerCase().replace(/(\.|\,|\!)/g, '').split(' ');
+    // Convert the words to a sequence of word indices.
+    const sequence = inputText.map(word => {
+      let wordIndex = this.wordIndex[word] + this.indexFrom;
+      if (wordIndex > this.vocabularySize) {
+        wordIndex = OOV_CHAR;
+      }
+      return wordIndex;
+    });
+    // Perform truncation and padding.
+    const paddedSequence = padSequences([sequence], this.maxLen);
+    const input = tf.tensor2d(paddedSequence, [1, this.maxLen]);
 
-const HOSTED_URLS = {
-  model:
-  'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/model.json',
-  metadata:
-  'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/metadata.json'
+    const beginMs = performance.now();
+    const predictOut = this.model.predict(input);
+    const score = predictOut.dataSync()[0];
+    predictOut.dispose();
+    const endMs = performance.now();
+
+    return { score: score, elapsed: (endMs - beginMs) };
+  }
 };
 
 
-class PredictSentiment{
-
+async function setupSentiment() {
+  const HOSTED_URLS = {
+    model:
+      'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/model.json',
+    metadata:
+      'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/metadata.json'
+  };
+  const predictor = await new SentimentPredictor().init(HOSTED_URLS);
 }
 
 
+async function loadHostedPretrainedModel(url) {
+  console.log('Loading pretrained model from ' + url)
+  try {
+    // const model = await tf.loadLayersModel(url);
+    const model = fetch(url)
+      .then(res => res.json())
+      // .then(json => console.log(json));
+      .then((json) => {
+        return json;
+      });
 
-async function setupSentiment() {
-  if (await loader.urlExists(HOSTED_URLS.model)) {
-    ui.status('Model available: ' + HOSTED_URLS.model);
-    const button = document.getElementById('load-pretrained-remote');
-    button.addEventListener('click', async () => {
-      const predictor = await new SentimentPredictor().init(HOSTED_URLS);
-      ui.prepUI(x => predictor.predict(x));
-    });
-    button.style.display = 'inline-block';
+    // We can't load a model twice due to
+    // https://github.com/tensorflow/tfjs/issues/34
+    // Therefore we remove the load buttons to avoid user confusion.
+    return model;
+
+  } catch (err) {
+    console.error(err);
+    console.log('🤖', 'Loading pretrained model failed.')
   }
+}
 
-  //// no local urls for now
 
-  // if (await loader.urlExists(LOCAL_URLS.model)) {
-  //   ui.status('Model available: ' + LOCAL_URLS.model);
-  //   const button = document.getElementById('load-pretrained-local');
-  //   button.addEventListener('click', async () => {
-  //     const predictor = await new SentimentPredictor().init(LOCAL_URLS);
-  //     ui.prepUI(x => predictor.predict(x));
-  //   });
-  //   button.style.display = 'inline-block';
-  // }
-  console.log("setupSentiment --> Standing by.")
-  // ui.status('Standing by.');
+async function loadHostedMetadata(url) {
+  console.log('🤖', 'Loading metadata from ' + url)
+  try {
+    const metadataJson = await fetch(url);
+    const metadata = await metadataJson.json();
+    console.log('🤖', 'Done loading metadata.')
+    return metadata;
+  } catch (err) {
+    console.error(err);
+    console.log('🤖', 'Loading metadata failed.')
+  }
 }
 
 
 setupSentiment();
+
+const sentiment = () => new SentimentPredictor();
+
+export default sentiment;
+
