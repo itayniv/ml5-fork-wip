@@ -9,9 +9,11 @@ class SentimentPredictor {
     setupSentiment();
     console.log('constructor');
   }
+
   /**
   * Initializes the Sentiment demo.
   */
+
   async init(urls) {
     this.urls = urls;
 
@@ -89,19 +91,17 @@ async function setupSentiment() {
 async function loadHostedPretrainedModel(url) {
   console.log('Loading pretrained model from ' + url);
   try {
-    const model = await tf.loadLayersModel(url);
+    // load model -->
 
-    // fetch method try to see if works
+    const model = await tf.loadLayersModel(url);
+    // fetch model -->
+
     // const model = fetch(url)
     //   .then(res => res.json())
     //   // .then(json => console.log(json));
     //   .then((json) => {
     //     return json;
     //   });
-
-    // We can't load a model twice due to
-    // https://github.com/tensorflow/tfjs/issues/34
-    // Therefore we remove the load buttons to avoid user confusion.
     return model;
   } catch (err) {
     console.error(err);
@@ -123,9 +123,7 @@ async function loadHostedMetadata(url) {
   }
 }
 
-
 // setupSentiment();
-
 
 module.exports = SentimentPredictor;
 
