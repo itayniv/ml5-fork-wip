@@ -19,6 +19,7 @@ import SketchRNN from './SketchRNN';
 import preloadRegister from './utils/p5PreloadHelper';
 import { version } from '../package.json';
 import sentiment from './Sentiment';
+
 const withPreload = {
   imageClassifier,
 };
@@ -37,5 +38,5 @@ module.exports = Object.assign({}, preloadRegister(withPreload), {
   ...imageUtils,
   tf,
   version,
-  sentiment
+  sentiment,
 });
