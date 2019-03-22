@@ -5,10 +5,6 @@ const fetch = require('node-fetch');
 // import * as tf from '@tensorflow/tfjs-node';
 
 
-
-
-
-
 class SentimentPredictor {
     /**
     * Initializes the Sentiment demo.

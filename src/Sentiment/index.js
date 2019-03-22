@@ -1,13 +1,14 @@
 import * as tf from '@tensorflow/tfjs';
-import { OOV_CHAR, padSequences } from './sequence_utils';
-
 
 /**
 * Initializes the Sentiment demo.
 */
 
-
 class SentimentPredictor {
+  constructor() {
+    setupSentiment();
+    console.log('constructor');
+  }
   /**
   * Initializes the Sentiment demo.
   */
@@ -21,28 +22,27 @@ class SentimentPredictor {
   }
 
   async loadMetadata() {
-    const sentimentMetadata =
-      await loadHostedMetadata(this.urls.metadata);
-    // ui.showMetadata(sentimentMetadata);
+    const sentimentMetadata = await loadHostedMetadata(this.urls.metadata);
+
     this.indexFrom = sentimentMetadata['index_from'];
     this.maxLen = sentimentMetadata['max_len'];
-    console.log('🤖', 'indexFrom = ' + this.indexFrom);
-    console.log('🤖', 'maxLen = ' + this.maxLen);
+    // console.log('🤖', 'indexFrom = ' + this.indexFrom);
+    // console.log('🤖', 'maxLen = ' + this.maxLen);
 
     this.wordIndex = sentimentMetadata['word_index'];
     this.vocabularySize = sentimentMetadata['vocabulary_size'];
-    console.log('🤖', 'vocabularySize = ', this.vocabularySize);
+    // console.log('🤖', 'vocabularySize = ', this.vocabularySize);
   }
 
   predict(text) {
     // Convert to lower case and remove all punctuations.
     const inputText =
       text.trim().toLowerCase().replace(/(\.|\,|\!)/g, '').split(' ');
-    // Convert the words to a sequence of word indices.
+
     const sequence = inputText.map(word => {
       let wordIndex = this.wordIndex[word] + this.indexFrom;
       if (wordIndex > this.vocabularySize) {
-        wordIndex = OOV_CHAR;
+        wordIndex = 2;
       }
       return wordIndex;
     });
@@ -57,61 +57,75 @@ class SentimentPredictor {
     const endMs = performance.now();
 
     return { score: score, elapsed: (endMs - beginMs) };
+
+    // from Dan's code
+    //   // Look up word indices.
+    // const inputBuffer = tf.buffer([1, this.maxLen], 'float32');
+    // for (let i = 0; i < inputText.length; ++i) {
+    // // TODO(cais): Deal with OOV words.
+    //   const word = inputText[i];
+    //   inputBuffer.set(this.wordIndex[word] + this.indexFrom, 0, i);
+    // }
+    // const input = inputBuffer.toTensor();
+    // console.log('Running inference');
+    // const predictOut = this.model.predict(input);
+    // const score = predictOut.dataSync()[0];
+    // predictOut.dispose();
+    // return { score: score };
   }
-};
+}
 
 
 async function setupSentiment() {
   const HOSTED_URLS = {
     model:
-      'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/model.json',
+          'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/model.json',
     metadata:
-      'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/metadata.json'
+          'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/metadata.json',
   };
   const predictor = await new SentimentPredictor().init(HOSTED_URLS);
 }
 
-
 async function loadHostedPretrainedModel(url) {
-  console.log('Loading pretrained model from ' + url)
+  console.log('Loading pretrained model from ' + url);
   try {
-    // const model = await tf.loadLayersModel(url);
-    const model = fetch(url)
-      .then(res => res.json())
-      // .then(json => console.log(json));
-      .then((json) => {
-        return json;
-      });
+    const model = await tf.loadLayersModel(url);
+
+    // fetch method try to see if works
+    // const model = fetch(url)
+    //   .then(res => res.json())
+    //   // .then(json => console.log(json));
+    //   .then((json) => {
+    //     return json;
+    //   });
 
     // We can't load a model twice due to
     // https://github.com/tensorflow/tfjs/issues/34
     // Therefore we remove the load buttons to avoid user confusion.
     return model;
-
   } catch (err) {
     console.error(err);
-    console.log('🤖', 'Loading pretrained model failed.')
+    console.log('🤖', 'Loading pretrained model failed.');
   }
 }
 
 
 async function loadHostedMetadata(url) {
-  console.log('🤖', 'Loading metadata from ' + url)
+  console.log('🤖', 'Loading metadata from ' + url);
   try {
     const metadataJson = await fetch(url);
     const metadata = await metadataJson.json();
-    console.log('🤖', 'Done loading metadata.')
+    console.log('🤖', 'Done loading metadata.');
     return metadata;
   } catch (err) {
     console.error(err);
-    console.log('🤖', 'Loading metadata failed.')
+    console.log('🤖', 'Loading metadata failed.');
   }
 }
 
 
-setupSentiment();
+// setupSentiment();
 
-const sentiment = () => new SentimentPredictor();
 
-export default sentiment;
+module.exports = SentimentPredictor;
 
