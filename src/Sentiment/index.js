@@ -1,9 +1,11 @@
 import * as tf from '@tensorflow/tfjs';
 import callCallback from '../utils/callcallback';
-
 /**
 * Initializes the Sentiment demo.
 */
+
+
+console.log(tf);
 
 const OOV_CHAR = 2;
 const PAD_CHAR = 0;
@@ -51,7 +53,8 @@ class Sentiment {
       metadata:
         'https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/metadata.json',
     };
-    this.model = await tf.loadLayersModel(HOSTED_URLS.model);
+
+    this.model = await tf.loadModel(HOSTED_URLS.model);
     const metadataJson = await fetch(HOSTED_URLS.metadata);
     const sentimentMetadata = await metadataJson.json();
 
@@ -69,6 +72,7 @@ class Sentiment {
     // Convert the words to a sequence of word indices.
 
     const sequence = inputText.map((word) => {
+      console.log(this.wordIndex);
       let wordIndex = this.wordIndex[word] + this.indexFrom;
       if (wordIndex > this.vocabularySize) {
         wordIndex = OOV_CHAR;
@@ -76,6 +80,7 @@ class Sentiment {
       return wordIndex;
     });
 
+    console.log(sequence);
     // Perform truncation and padding.
     const paddedSequence = padSequences([sequence], this.maxLen);
     const input = tf.tensor2d(paddedSequence, [1, this.maxLen]);
