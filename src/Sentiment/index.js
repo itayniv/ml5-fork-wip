@@ -4,9 +4,6 @@ import callCallback from '../utils/callcallback';
 * Initializes the Sentiment demo.
 */
 
-
-console.log(tf);
-
 const OOV_CHAR = 2;
 const PAD_CHAR = 0;
 
@@ -40,7 +37,7 @@ function padSequences(sequences, maxLen, padding = 'pre', truncating = 'pre', va
 
 class Sentiment {
   constructor(callback) {
-    console.log('constructor');
+    // console.log('constructor');
     this.ready = callCallback(this.init(), callback);
   }
   /**
@@ -72,7 +69,6 @@ class Sentiment {
     // Convert the words to a sequence of word indices.
 
     const sequence = inputText.map((word) => {
-      console.log(this.wordIndex);
       let wordIndex = this.wordIndex[word] + this.indexFrom;
       if (wordIndex > this.vocabularySize) {
         wordIndex = OOV_CHAR;
@@ -80,7 +76,6 @@ class Sentiment {
       return wordIndex;
     });
 
-    console.log(sequence);
     // Perform truncation and padding.
     const paddedSequence = padSequences([sequence], this.maxLen);
     const input = tf.tensor2d(paddedSequence, [1, this.maxLen]);
